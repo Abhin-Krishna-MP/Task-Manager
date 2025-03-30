@@ -1,11 +1,9 @@
+import mongoose from "mongoose";
 import { tasks } from "./constants.mjs";
+import { Task } from "../mongoose/Schema/taskSchema";
 
-export const getTask = (req,res,next)=>{
-    const {body,params: {id}} = req
-    const parsedId = parseInt(id)
-    console.log(parsedId)
-    const findTaskId = tasks.findIndex((task)=>task.id === parsedId)
-    if (findTaskId === -1) return res.status(404).send({mssg: "Task not found"})
-    req.findTaskId = findTaskId
+
+export const isAuthenticated = (req,res,next)=>{
+    if(!req.isAuthenticated()) return res.status(404).send({mssg:"Not Authenticated"})
     next()
 }

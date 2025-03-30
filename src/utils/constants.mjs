@@ -35,3 +35,10 @@ export const tasks = [
         completed: false
     }
 ];
+
+export const mockusers = [
+    {id:1,username:'anson',diplayname:"Anson",password:"hello123"},
+    {id:2,username:'henry',diplayname:"Henry",password:"hello321"},
+    {id:3,username:'jack',diplayname:"Jack",password:"hello231"},
+    {id:4,username:'jaison',diplayname:"Jaison",password:"hello132"}
+]

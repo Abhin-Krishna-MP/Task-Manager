@@ -2,46 +2,71 @@ import { Router } from "express";
 import { tasks } from "../utils/constants.mjs";
 import { taskValidationSchema } from "../utils/validationSchemas.mjs";
 import { checkSchema, matchedData, validationResult } from "express-validator";
-import { getTask } from "../utils/middleware.mjs";
+import {  isAuthenticated } from "../utils/middleware.mjs";
+import { Task } from "../mongoose/Schema/taskSchema";
 
 
 
 const router = Router()
 
-router.post('/api/task/create',checkSchema(taskValidationSchema),(req, res) => {
+router.post('/api/task/create',isAuthenticated,checkSchema(taskValidationSchema),async(req, res) => {
     const result = validationResult(req)
     const data = matchedData(req)
     if(!result.isEmpty()) return res.status(400).send(result)
-    const newTask = {
-        id: tasks.length +1,
-        date: new Date(),
-        title : data.title,
-        description: data.description,
-        completed: false
+    try {
+        const newTask = new Task({
+            title : data.title,
+            description: data.description,
+            user : req.user._id
+        })
+        const saveTask = newTask.save()
+        res.status(200).send({mssg:"Added successfully"})
+    } catch (error) {
+        res.status(400).send({err:error})
     }
-    tasks.push(newTask)
-    res.status(200).send({mssg:"Added successfully"})
 })
 
-router.get('/api/task/read',(req,res)=>{
-    const {filter,value} = req.query
-    if(filter && value) return res.send(tasks.filter((task)=>{ 
-        if(typeof task[filter]=== 'boolean') return task[filter] === (value==='true')
-        return task[filter] === value
-    }))
-    res.send({mssg:"Read successfully",data:tasks})
+router.get('/api/task/read',isAuthenticated,async(req,res)=>{
+
+    try {
+        const tasks = await Task.find({user:req.user._id})
+        return res.send({tasks})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).send({mssg:error})
+    }
 })
 
-router.patch('/api/task/update/:id',getTask,(req,res)=>{
-    const {body,findTaskId} = req
-    tasks[findTaskId]  = {...tasks[findTaskId], ...body}
-    res.status(200).send({mssg:"updated successfully"})
+router.patch('/api/task/update/:id',isAuthenticated,async(req,res)=>{
+    const { title, description, completed } = req.body
+    try {
+        const updatedTask = await Task.findOneAndUpdate(
+            {_id: req.params.id, user: req.user._id},
+            {title,description,completed},
+            {new : true}
+        )
+        if (!updatedTask) return res.status(404).json({ msg: "Task not found" });
+        return res.status(200).send({mssg:"updated successfully"})
+        
+    } catch (error) {
+        console.log(error)
+        return res.status(500).send({mssg:error})
+        
+    }
 })
 
-router.delete('/api/task/delete/:id',getTask,(req,res)=>{
-    const {body,findTaskId} = req
-    tasks.splice(findTaskId,1)
-    res.status(200).send({mssg:"Removed successfully"})
+router.delete('/api/task/delete/:id',async(req,res)=>{
+    try {
+        const deleteTask = await Task.findOneAndDelete({
+            _id : req.params.id,
+            user : req.user._id
+        })
+        return res.status(200).send({mssg:"Removed successfully"})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).send({mssg:error})
+        
+    }
 })
 
 export default router
